@@ -208,3 +208,6 @@ __marimo__/
 
 # large files used as datasets
 notebooks/data/
+
+# Ignore pickle files for now
+**/*.pkl
