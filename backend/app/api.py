@@ -33,13 +33,15 @@ with open(GLOVE_PATH / 'glove.pkl', 'rb') as f:
 zipf_lower_bound = 4.0
 zipf_upper_bound = 5.0
 
-
-
+# Word constants
 target_word = None
 similarity_ranking = None
 
 all_words = list(glove.keys())
 used_words = set()
+
+colors = ['#9b59b6', '#e67e22', '#2ecc71']
+color_n = len(colors)
 
 nlp = spacy.load('en_core_web_sm')
 def get_word_lemma(word):
@@ -65,6 +67,16 @@ def get_ranking(word2):
 
     return similarity_ranking.index(all_words.index(word2)) + 1
 
+def convert_ranking_to_progress(ranking):
+    def scaling_function(x):
+        return (1 / 100) * (x ** 2)
+
+    percent = ranking / len(all_words)
+    progress = int((1 - percent) * 100)
+    progress = min(100, max(0, progress))
+
+    color_index =  min(int((progress / 100) * color_n), color_n - 1)
+    return scaling_function(progress), colors[color_index]
 
 
 ### API stuff
@@ -74,7 +86,9 @@ class GuessRequest(BaseModel):
 
 @app.post('/start_game')
 def start_game():
-    global target_word, similarity_ranking
+    global target_word, similarity_ranking, used_words
+    # reset local variables
+    used_words = set()
 
     target_word = random.choice(words)
     similarity_ranking = create_similarity_ranking(target_word)
@@ -88,21 +102,30 @@ def guess(req: GuessRequest):
     
     zipf_score = zipf_frequency(guess_word, lang='en', wordlist='best')
     if zipf_score > zipf_upper_bound:
-        return {'valid_guess': False, 'word': guess_word, 'message': 'too common.', 'rank': None}
+        return {'valid_guess': False, 'word': guess_word, 'message': 'too common.', 
+                'rank': None, 'progress': None, 'progress_color': None}
     elif zipf_score < zipf_lower_bound:
-        return {'valid_guess': False, 'word': guess_word, 'message': 'too uncommon.', 'rank': None}
+        return {'valid_guess': False, 'word': guess_word, 'message': 'too uncommon.', 
+                'rank': None, 'progress': None, 'progress_color': None}
 
+    # under the assumption that there aren't words with the same lemma in "all_words"
+    # @TODO it'd be worth it to check
     if guess_word not in all_words:
         word_lemma = get_word_lemma(guess_word)
 
         if word_lemma in all_words:
             guess_word = word_lemma
         else:
-            return {'valid_guess': False, 'word': original_word, 'message': 'not found.', 'rank': None}
+            return {'valid_guess': False, 'word': original_word, 'message': 'not found.', 
+                    'rank': None, 'progress': None, 'progress_color': None}
         
     if guess_word in used_words:
-        return {'valid_guess': False, 'word': original_word, 'message': 'already guessed.', 'rank': None}
+        return {'valid_guess': False, 'word': original_word, 'message': 'already guessed.', 
+                'rank': None, 'progress': None, 'progress_color': None}
     used_words.add(guess_word)
 
     ranking = get_ranking(guess_word)
-    return {'valid_guess': True, 'word': guess_word, 'message': f'ranked #{ranking}.', 'rank': ranking} # not using the mesasge currently
+    progress, progress_color = convert_ranking_to_progress(ranking)
+
+    return {'valid_guess': True, 'word': guess_word, 'message': f'ranked #{ranking}.', 
+            'rank': ranking, 'progress': progress, 'progress_color': progress_color}
