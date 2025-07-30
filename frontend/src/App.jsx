@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./App.css";
 
 function App() {
   const [gameStarted, setGameStarted] = useState(false);
@@ -35,8 +36,12 @@ function App() {
         <>
           Word <strong>{data.word}</strong> {data.message}
         </>
-      ); // not using the message from api
-      setHistory((h) => [...h, { word: guess, rank: data.rank }]);
+      );
+      setHistory((prevHistory) =>
+        [...prevHistory, { word: guess, rank: data.rank, progress: data.progress, progress_color: data.progress_color }]
+          .sort((a, b) => a.rank - b.rank)
+      );
+
     } else {
       setMessage(
         <>
@@ -49,7 +54,7 @@ function App() {
 
   return (
     <div style={{ maxWidth: 600, margin: "2rem auto", fontFamily: "sans-serif" }}>
-      <h1>Contexto Clone</h1>
+      <h1>Wikipedia Contexto</h1>
       {!gameStarted ? (
         <button onClick={startGame}>Start Game</button>
       ) : (
@@ -58,29 +63,27 @@ function App() {
             <input
               value={guess}
               onChange={(e) => setGuess(e.target.value)}
-              placeholder="Enter your guess"
+              placeholder="guess a word"
               autoFocus
             />
-            <button type="submit">Guess</button>
+            {/* <button type="submit">Guess</button> */}
           </form>
           <p>{message}</p>
           {history.length > 0 && (
-            <table border="1" cellPadding="5" style={{ marginTop: 20 }}>
-              <thead>
-                <tr>
-                  <th>Word</th>
-                  <th>Rank</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map(({ word, rank }, i) => (
-                  <tr key={i}>
-                    <td>{word}</td>
-                    <td>{rank}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div>
+              {history.map(({ word, rank, progress, progress_color }, i) => (
+                <div 
+                  className="wordBox"
+                  key={i}
+                  style={{
+                      background: `linear-gradient(to right, ${progress_color} ${progress}%, transparent 0%)` /* used to be the color #4caf50 */
+                  }}
+                >
+                  <div className="word">{word}</div>
+                  <div className="rank">{rank}</div>
+                </div>
+              ))}
+            </div>
           )}
         </>
       )}
