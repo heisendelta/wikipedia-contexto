@@ -76,7 +76,8 @@ def convert_ranking_to_progress(ranking):
     progress = min(100, max(0, progress))
 
     color_index =  min(int((progress / 100) * color_n), color_n - 1)
-    return scaling_function(progress), colors[color_index]
+    # return scaling_function(progress), colors[color_index]
+    return progress, colors[color_index] # remove scaling for debugging
 
 
 ### API stuff
@@ -92,6 +93,8 @@ def start_game():
 
     target_word = random.choice(words)
     similarity_ranking = create_similarity_ranking(target_word)
+
+    print(f'Game started with word: {target_word}') # print target word for debugging
 
     return {'mesage': 'Game started', 'vocab_size': len(all_words)}
 
